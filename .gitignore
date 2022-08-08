@@ -1,0 +1,7 @@
+/pkg/
+/src/
+/*.pkg.tar.*
+/vkBasalt-*.tar.gz
+/vkBasalt/
+/vkbasalt/
+/reshade/
