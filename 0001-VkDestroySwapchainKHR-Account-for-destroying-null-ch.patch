@@ -1,0 +1,39 @@
+From 5ef30d385799f8fe908c4e0e80715216f9513f20 Mon Sep 17 00:00:00 2001
+From: Matt Coffin <mcoffin13@gmail.com>
+Date: Mon, 30 Jan 2023 23:42:49 -0700
+Subject: [PATCH] VkDestroySwapchainKHR: Account for destroying null chains
+
+mpv, as an example, behaves poorly, and will call vkDestroySwapchainKHR
+with VK_NULL_HANDLE as the swapchain upon init. It seems that downstream
+drivers tend to handle this gracefully, so we can check to make sure
+that the swapchain is either non-null (so we should expect to have a
+reference to ours), or we *do* have a reference to a VK_NULL_HANDLE
+swapchain (unexpected, but... maybe?) before we dereference it, thereby
+allowing the layer to be used with such poorly-behaved applications.
+---
+ src/basalt.cpp | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/basalt.cpp b/src/basalt.cpp
+index aaf3281..f39754d 100644
+--- a/src/basalt.cpp
++++ b/src/basalt.cpp
+@@ -603,10 +603,12 @@ namespace vkBasalt
+         // we need to delete the infos of the oldswapchain
+ 
+         Logger::trace("vkDestroySwapchainKHR " + convertToString(swapchain));
+-        swapchainMap[swapchain]->destroy();
+-        swapchainMap.erase(swapchain);
+-        LogicalDevice* pLogicalDevice = deviceMap[GetKey(device)].get();
++        if (swapchain != VK_NULL_HANDLE || swapchainMap.contains(swapchain)) {
++            swapchainMap[swapchain]->destroy();
++            swapchainMap.erase(swapchain);
++        }
+ 
++        LogicalDevice* pLogicalDevice = deviceMap[GetKey(device)].get();
+         pLogicalDevice->vkd.DestroySwapchainKHR(device, swapchain, pAllocator);
+     }
+ 
+-- 
+2.39.1
+

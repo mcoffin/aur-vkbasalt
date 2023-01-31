@@ -1,8 +1,8 @@
 # Maintainer: gee
 # contributors: yochananmarqos, bpierre, PedroHLC, rodrigo21, Matt Coffin <mcoffin13@gmail.com>
 pkgname=vkbasalt
-pkgver=0.3.2.6
-pkgrel=2
+pkgver=0.3.2.8
+pkgrel=4
 pkgdesc='A Vulkan post-processing layer. Some of the effects are CAS, FXAA, SMAA, deband.'
 arch=('x86_64')
 url='https://github.com/DadSchoorse/vkBasalt'
@@ -11,16 +11,21 @@ makedepends=('meson' 'ninja' 'glslang' 'libx11' 'spirv-headers' 'vulkan-headers'
 depends=('gcc-libs' 'glslang' 'libx11')
 # source=("${url}/releases/download/v${pkgver}/vkBasalt-${pkgver}.tar.gz")
 # sha256sums=('bf71e34d5d3fea677bc5ab95c07fd5eb052369c399d839789331614b90957593')
-source=("${pkgname}::git+https://github.com/DadSchoorse/vkBasalt.git#tag=v${pkgver}")
-b2sums=('SKIP')
+source=("${pkgname}::git+https://github.com/DadSchoorse/vkBasalt.git#tag=v${pkgver}"
+        0001-VkDestroySwapchainKHR-Account-for-destroying-null-ch.patch)
+b2sums=('SKIP'
+        'dde0dd6651c76b12e8498f1a3e34949d552c1ae61278cbe11fe6cc083e409bbe743db4b99f94d88b59067f17a89adbd7d710ed19c924e1c8802d4b8678c80e17')
 install=vkbasalt.install
-options=(debug !strip)
+# options=(debug !strip)
 
 prepare() {
 	cd "$srcdir/$pkgname"
 	local _srcfile
 	for _srcfile in "${source[@]}"; do
-		grep -E '\.patch$' <<< "$_srcfile" || continue
+		_srcfile="${_srcfile%%::*}"
+		_srcfile="${_srcfile##*/}"
+		[[ $_srcfile = *.patch ]] || continue
+		msg2 "Applying patch $_srcfile..."
 		patch -p1 < "$srcdir"/"$_srcfile"
 	done
 	# sed -i 's|/path/to/reshade-shaders/Textures|/opt/reshade/textures|g' \
@@ -52,7 +57,6 @@ _arch_meson_buildtype() {
 build() {
 	cd "$srcdir/$pkgname"
 	arch-meson \
-		--buildtype=`_arch_meson_buildtype` \
 		build
 	ninja -C build
 }
